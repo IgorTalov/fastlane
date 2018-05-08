@@ -33,10 +33,6 @@ module Fastlane
         ]
       end
 
-      def self.authors
-        ["etolstoy"]
-      end
-
       def self.is_supported?(platform)
         true
       end

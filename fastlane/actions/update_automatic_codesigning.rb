@@ -31,11 +31,11 @@ module Fastlane
 
         project_attrs = project.root_object.attributes
         target_attributes = project_attrs['TargetAttributes']
-        if !target_attributes
+        unless target_attributes
           project_attrs['TargetAttributes'] = {}
         end
         targets_ids.each { |target_id|
-          if !project_attrs['TargetAttributes'][target_id]
+          unless project_attrs['TargetAttributes'][target_id]
             project_attrs['TargetAttributes'][target_id] = {}
           end
           style = params[:use_automatic_signing] ? 'Automatic' : 'Manual'
@@ -81,10 +81,6 @@ module Fastlane
       end
 
       def self.return_value
-      end
-
-      def self.authors
-        ["mathiasAichinger"]
       end
 
       def self.is_supported?(platform)

@@ -16,8 +16,8 @@ module Fastlane
 
 
         branch_list = branch_list.split(/\n/)
-	result_branch = release_branch if branch_list.any? { |branch| branch[2..-1].sub('remotes/origin/', '') == release_branch }
-	result_branch = hotfix_branch if branch_list.any? { |branch| branch[2..-1].sub('remotes/origin/', '') == hotfix_branch }
+        result_branch = release_branch if branch_list.any? { |branch| branch[2..-1].sub('remotes/origin/', '') == release_branch }
+        result_branch = hotfix_branch if branch_list.any? { |branch| branch[2..-1].sub('remotes/origin/', '') == hotfix_branch }
 
         if result_branch.empty?
           result_branch = release_branch
@@ -25,11 +25,8 @@ module Fastlane
           Actions.sh("git checkout #{result_branch}")
           Actions.sh("git push --set-upstream origin #{result_branch}")
         else
-          Actions.sh("git checkout develop")
-          Actions.sh("git branch -D #{result_branch}")
           Actions.sh("git checkout #{result_branch}")
           Actions.sh("git pull origin #{result_branch}")
-          Helper.log.info "Successfully checkout branch #{result_branch}."
         end
 
         return result_branch
@@ -57,10 +54,6 @@ module Fastlane
         [
           ['GIT_CHECKOUT_BRANCH', 'The branch name that needs to be checkout']
         ]
-      end
-
-      def self.authors
-        ["etolstoy"]
       end
 
       def self.is_supported?(platform)

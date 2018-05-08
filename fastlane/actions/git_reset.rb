@@ -12,11 +12,7 @@ module Fastlane
     	#####################################################
         def self.description
         	'Reset a branch and clean working copy'
-      	end
-
-      	def self.authors
-        	["CognitiveDisson"]
-      	end
+				end
 
       	def self.is_supported?(platform)
         	true

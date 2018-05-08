@@ -36,10 +36,6 @@ module Fastlane
         ]
       end
 
-      def self.authors
-        ["fabiomilano"]
-      end
-
       def self.is_supported?(platform)
         true
       end
