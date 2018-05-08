@@ -8,15 +8,186 @@ require 'fileutils'
 default_platform :ios
 ######################### PUBLIC LANES ##########################
 
-desc "Submit a new build from develop branch to Hockey (testing flow)"
-lane :testing do |options|
+desc 'В мире животных'
+lane :animal_build do |options|
+  version_number = ENV['VERSION']
+  build_number = obtain_build_number
+  branch = ENV['BRANCH']
+
+  options[:branch] = branch
+  options[:version_number] = version_number
+  options[:build_number] = build_number
+
+  # Setting up app options
+  setting_app_options(options)
+
+  # Switching to Hockey
+  pre_upload_action(options)
+  dd_hockey(options)
+  post_upload_action(options)
+
+  # Setting output message
+  @result = "#{@name} #{current_version}.#{current_build} (animal build) uploaded to Hockey"
+end
+
+desc 'Submit a new nightly build from develop branch to FTP'
+lane :staging do |options|
+  print("options: #{options}")
+  options[:type] = 'Staging'
+  # Reset and clean working copy if needed
+  git_reset unless options[:skip_reset]
+
+  # Setting up the default branch. Checks out release/x.x.x or hotfix/x.x.x if there are suitable branches, or creates a new branch release/x.x.x
+  version = ENV['VERSION']
+  customer_tag = ENV['CUSTOMER_TAG']
+
+  # Collecting a changelog from commit list
+  options[:changelog] = changelog_from_git_commits(
+    tag_match_pattern: "#{customer_tag}_staging/*"
+  )
+
+
+  branch = git_checkout_release(version: version)
+  options[:branch] = branch
+
+  # Setting up a new version
+  options[:version_number] = version
+  options[:build_number] = obtain_build_number
+
+  # Setting up git tag as 'staging/3.0.0/56'
+  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
+  current_build = obtain_build_number
+  staging_tag = "#{customer_tag}_staging/#{current_version}/#{current_build}"
+  options[:tags] = [staging_tag]
+
+  # Setting up the icon badge
+  shield_text = "#{customer_tag}_staging"
+  options[:shield_text] = shield_text
+
+  # Setting up rules for changelog collecting
+  options[:tag_match_pattern] = "#{customer_tag}_staging/*"
+
+  # Setting up app options
+  setting_app_options(options)
+
+  # Switching to Hockey
+  pre_upload_action(options)
+  dd_hockey(options)
+  post_upload_action(options)
+
+  dd_slack(options)
+  # Setting output message
+  @result = "#{@name} #{current_version}.#{current_build} (staging) uploaded to Hockey"
+end
+
+desc 'Submit a new nightly build from develop branch to Hockey'
+lane :nightly do |options|
+  options[:type] = 'Nightly'
+  customer_tag = ENV['CUSTOMER_TAG']
+  # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
+  sh('git tag | xargs git tag -d')
+  sh("git fetch origin 'refs/tags/#{customer_tag}_nightly/latest:refs/tags/#{customer_tag}_nightly/latest'") rescue ''
+
+  # Collecting a changelog from commit list
+  changelog = changelog_from_git_commits(
+    tag_match_pattern: "#{customer_tag}_nightly/*"
+  )
+
+  puts "changelog: \n#{changelog}"
+  changelog_empty = changelog.nil? || changelog.empty?
+  @result = 'no changes' if changelog_empty
+
   # Setting up the default branch
   options[:branch] = 'develop'
 
-  # Setting up git tag as 'testing/3.0.0/56'
-  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
+  # Setting up git tags as 'nightly/2016/5/5' and 'nightly/latest'
+  month = Date.today.month
+  year = Date.today.year
+  day = Date.today.day
+  current_tag = "#{customer_tag}_nightly/#{year}/#{month}/#{day}"
+  options[:tags] = ["#{customer_tag}_nightly/latest", current_tag]
+  puts(current_tag)
+
+  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
   current_build = obtain_build_number
-  testing_tag = "testing/#{current_version}/#{current_build}"
+
+  options[:version_number] = current_version
+  options[:build_number] = obtain_build_number
+
+  # Setting up the icon badge
+  shield_text = "#{customer_tag}_nightly"
+  options[:shield_text] = shield_text
+
+  # Setting up app options
+  setting_app_options(options)
+
+
+  # Switching to ftp lane only if there were any changes
+  unless changelog_empty
+    # Switching to Hockey
+    pre_upload_action(options)
+    dd_hockey(options)
+    post_upload_action(options)
+    dd_slack(options)
+    @result = "#{@name} #{current_version}.#{current_build} (nightly) uploaded to Hockey"
+  end
+end
+
+desc 'Submit a new release build from master branch to Hockey'
+lane :release do |options|
+  options[:type] = 'Release'
+  # Reset and clean working copy if needed
+  git_reset unless options[:skip_reset]
+
+
+  options[:changelog] = changelog_from_git_commits(
+    tag_match_pattern: "#{customer_tag}_release/*"
+  )
+  # Setting up the default branch -- master
+  options[:branch] = 'master'
+
+  customer_tag = ENV['CUSTOMER_TAG']
+  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
+  options[:version_number] = current_version
+  options[:build_number] = obtain_build_number
+
+  # Setting up git tag as 'release/3.0.0/56'
+  current_build = obtain_build_number
+  release_tag = "#{customer_tag}_release/#{current_version}/#{current_build}"
+  options[:tags] = [release_tag]
+
+  # Setting up rules for changelog col lecting
+  options[:tag_match_pattern] = "#{customer_tag}_release/*"
+
+  # Setting up app options
+  setting_app_options(options)
+
+  # Switching to Hockey
+  pre_upload_action(options)
+  dd_hockey(options)
+  post_upload_action(options)
+
+  dd_slack(options)
+  # Setting output message
+  @result = "#{@name} #{current_version}.#{current_build} (release) uploaded to Hockey"
+end
+
+desc 'Submit a new build from develop branch to Hockey (testing flow)'
+lane :testing do |options|
+
+  options[:type] = 'QA'
+  # Setting up the default branch
+  options[:branch] = 'develop'
+  customer_tag = ENV['CUSTOMER_TAG']
+
+  options[:changelog] = changelog_from_git_commits(
+    tag_match_pattern: "#{customer_tag}_release/*"
+  )
+
+  # Setting up git tag as 'testing/3.0.0/56'
+  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
+  current_build = obtain_build_number
+  testing_tag = "#{customer_tag}_testing/#{current_version}/#{current_build}"
   options[:tags] = [testing_tag]
 
   # Setting up a new version
@@ -24,11 +195,11 @@ lane :testing do |options|
   options[:build_number] = obtain_build_number
 
   # Setting up the icon badge
-  shield_text = "testing"
+  shield_text = "#{customer_tag}_testing"
   options[:shield_text] = shield_text
 
   # Setting up rules for changelog collecting
-  options[:tag_match_pattern] = "testing/*"
+  options[:tag_match_pattern] = "#{customer_tag}_testing/*"
 
   # Setting up app options
   setting_app_options(options)
@@ -38,11 +209,34 @@ lane :testing do |options|
   dd_hockey(options)
   post_upload_action(options)
 
+  dd_slack(options)
   # Setting output message
   @result = "#{@name} #{current_version}.#{current_build} (testing) uploaded to Hockey"
 end
 
-desc "Prepares the build and uploads it to Fabric"
+private_lane :dd_slack do |options|
+  build_type = options[:type]
+  version = "#{options[:version_number]}.#{options[:build_number]}"
+  context = lane_context[SharedValues::HOCKEY_BUILD_INFORMATION]
+  config_url = context["config_url"]
+  url = "#{lane_context[SharedValues::HOCKEY_DOWNLOAD_LINK]}/app_versions/#{parse_version_from_url(config_url)}"
+  slack(
+    message: "[#{ENV["APP_NAME"]}|#{ENV["CUSTOMER_TAG"]}|#{build_type}|#{version}] has been submitted to Hockey :rocket:",
+    success: true,
+    use_webhook_configured_username_and_icon: true,
+    payload: {
+              'Hockey App Download URL' => url,
+              :changelog => @jira_changelog
+    },
+    default_payloads: [:last_git_commit_hash]
+  )
+end
+
+def parse_version_from_url(uri)
+  URI(uri).path.split('/').last
+end
+
+desc 'Prepares the build and uploads it to Fabric'
 private_lane :dd_hockey do |options|
   # Variables declaration
   team_name = obtain_team_name
@@ -53,21 +247,37 @@ private_lane :dd_hockey do |options|
 
   # Setting up the icon badge
   shield_text = options[:shield_text]
-  shield_data = "#{shield_text}-#{version_number}.#{build_number}"
-  add_badge(shield: shield_data, dark: true)
+  if shield_text
+    shield_data = "#{shield_text}-#{version_number}.#{build_number}-blue"
+    print("shield_data: #{shield_data}")
+    badge(shield: shield_data, dark: true)
+  end
 
   # Building the ipa file
   gym(
-      workspace: ENV['XCWORKSPACE_NAME'],
-      scheme: ENV['SCHEME'],
-      output_name: ENV['SCHEME'],
-      configuration: "Release",
-      clean: true,
-      codesigning_identity: team_name,
-      xcargs: xcode_args(options),
-      disable_xcpretty: options[:disable_xcpretty],
-      )
+    workspace: ENV['XCWORKSPACE_NAME'],
+    scheme: ENV['SCHEME'],
+    output_name: ENV['SCHEME'],
+    configuration: 'Release',
+    clean: true,
+    codesigning_identity: team_name,
+    xcargs: xcode_args(options),
+    disable_xcpretty: options[:disable_xcpretty],
+    export_method: 'enterprise'
+  )
 
+  hockey(
+    api_token: ENV['HOCKEY_API_TOKEN'],
+    create_update: true,
+    public_identifier: ENV['HOCKEY_APP_ID'],
+    status: '2',
+    create_status: '2',
+    release_type: '3',
+    bundle_short_version: version_number,
+    bundle_version: build_number,
+    ipa: "#{ENV['SCHEME']}.ipa",
+    notes: @jira_changelog,
+  )
 end
 
 def pre_upload_action(options)
@@ -78,24 +288,53 @@ def pre_upload_action(options)
   branch = options[:branch]
   git_checkout(remote_branch: branch)
 
+  # Update pods
+  cocoapods(
+    clean: true,
+  )
+
   # New version number has to be specified explicitly
   version_number = options[:version_number]
-  raise "Missing version number: use version_number parameter" unless version_number != nil
+  build_number = options[:build_number]
+  raise 'Missing version number: use version_number parameter' unless version_number != nil
   Actions.lane_context[SharedValues::VERSION_NUMBER] = version_number
 
   # Increment build
   increment_build_number(options)
 
-  # Collecting a full changelog consisting of JIRA tasks
-  jira_project = ENV['JIRA_PROJECT']
-  if jira_project
-    changelog = jira_only_changelog(options[:tag_match_pattern], jira_project)
-    @jira_changelog = "List of changes:\n#{changelog}"
+  root_plists = options[:root_plists]
+  if root_plists 
+    root_plists.each {|root_plist|
+      update_root_plist(
+          file: root_plist,
+          key: 'DDSettingsApplicationBuildNumber',
+          value: "#{version_number} (#{build_number})"
+      )
+    }
   end
+
+  # Collecting a full changelog consisting of JIRA tasks
+  changelog = jira_changelog(options[:tag_match_pattern])
+  @jira_changelog = "List of changes:\n#{changelog}"
+
   current_branch = git_branch()
   @jira_changelog ||= ''
   @jira_changelog += "\n" unless @jira_changelog.empty?
   @jira_changelog += "Branch:\n#{current_branch}"
+end
+
+def update_root_plist(params)
+  require 'plist'
+  path = File.expand_path(params[:file]).sub! 'fastlane/', ''
+  plist = Plist.parse_xml(path)
+  # Set the XML position of the Version item
+  plist['PreferenceSpecifiers'].each {|item|
+    if item['Key'] == 'DDSettingsApplicationVersion'
+      item['DefaultValue'] = params[:value]
+    end
+  }
+  new_plist = plist.to_plist
+  File.write(path, new_plist)
 end
 
 def post_upload_action(options)
@@ -104,41 +343,32 @@ def post_upload_action(options)
   clear_derived_data
   git_reset
 
-  # Search jira issues
-  # jira_project = ENV['JIRA_PROJECT']
-  # issues = nil
-  # if jira_project
-  #   issues = jira_issues(options[:tag_match_pattern],
-  #                        jira_project)
-  # end
-
   # Add tag to git
   tags = options[:tags]
-  multiple_tags(tags: tags)
+  if tags
+    multiple_tags(tags: tags)
+    branch = options[:branch]
+    sh("git push -uf origin #{branch}")
+  end
+end
 
-  branch = options[:branch]
-  sh("git push -uf origin #{branch}")
-
-  # Move issues in jira
-  # if jira_project && issues
-  #   jira_options = {
-  #       :issue_ids            => issues,
-  #       :jira_username        => ENV['JIRA_USERNAME'],
-  #       :jira_password        => ENV['JIRA_PASSWORD'],
-  #       :jira_host            => ENV['JIRA_HOST'],
-  #       :jira_transition_name => ENV['JIRA_TRANSITION_NAME'],
-  #   }
-  #   jira_work_flow(jira_options)
-  # end
+def jira_changelog(tag_match_pattern)
+  raw_changelog = changelog_from_git_commits(
+      tag_match_pattern: tag_match_pattern
+  )
+  return 'empty' unless raw_changelog != nil
+  raw_changelog.scan(/\[\w+\]/).uniq.map {|message|
+    return "http://ddsm-jira.digdes.com/browse/#{message[1...-1]}\n"
+  }
 end
 
 def jira_only_changelog(tag_match_pattern, jira_project)
   raw_changelog = changelog_from_git_commits(
-      tag_match_pattern: tag_match_pattern
+    tag_match_pattern: tag_match_pattern
   )
-  return "empty" unless raw_changelog != nil
+  return 'empty' unless raw_changelog != nil
 
-  regexp = Regexp.new("(#{jira_project}-[0-9]*)(?:.*\#comment (.*))?").freeze
+    regexp = Regexp.new("(#{jira_project}-[0-9]*)(?:.*\#comment (.*))?").freeze
 
   messages = raw_changelog.split("\n").select { |message|
     message.match(regexp)
@@ -148,7 +378,7 @@ def jira_only_changelog(tag_match_pattern, jira_project)
     formatted_comment = comment && !comment.empty? ? " – #{comment}" : ''
     "http://ddsm-jira.digdes.com/browse/#{jira_issue_id}#{formatted_comment}"
   }
-  messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
+  messages.count > 0 ? messages.uniq.join("\n") : 'No closed JIRA-issues'
 end
 
 def increment_build_number(options)
@@ -161,20 +391,18 @@ def update_build_and_version_with_extensions(options, build_number)
   app_plists = options[:app_plists]
   version_number = options[:version_number]
 
-  if app_plists == nil
-    app_plists = [get_info_plist_path]
-  end
+  app_plists = [get_info_plist_path] if app_plists == nil
 
   app_plists.each { |app_plist|
     set_info_plist_value(
-        path: app_plist,
-        key: 'CFBundleVersion',
-        value: "#{build_number}"
+      path: app_plist,
+      key: 'CFBundleVersion',
+      value: "#{build_number}"
     )
     set_info_plist_value(
-        path: app_plist,
-        key: 'CFBundleShortVersionString',
-        value: "#{version_number}"
+      path: app_plist,
+      key: 'CFBundleShortVersionString',
+      value: "#{version_number}"
     )
   }
 end
@@ -192,7 +420,7 @@ def setting_app_options(options)
 end
 
 def main_app_identifier(options)
-  main_app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  main_app_identifier = ENV['APP_IDENTIFIER']
   main_app_identifier = options[:main_app_identifier] if options[:main_app_identifier]
 
   main_app_identifier
@@ -200,14 +428,14 @@ end
 
 
 def obtain_build_number
-  600
+  ENV['BUILD_NUMBER']
 end
 
 def obtain_team_name
-  CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
+  ENV['TEAM_NAME']
 end
 
 def xcode_args(options)
-  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+  team_id = ENV['TEAM_ID']
   "DEVELOPMENT_TEAM=#{team_id}"
 end
