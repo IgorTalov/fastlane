@@ -12,7 +12,7 @@ desc 'В мире животных'
 lane :animal_build do |options|
   version_number = ENV['VERSION']
   build_number = obtain_build_number
-  branch = ENV['BRANCH']
+  branch = ENV['BRANCH_NAME']
 
   options[:branch] = branch
   options[:version_number] = version_number
