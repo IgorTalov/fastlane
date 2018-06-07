@@ -27,7 +27,7 @@ lane :animal_build do |options|
   post_upload_action(options)
 
   # Setting output message
-  @result = "#{@name} #{current_version}.#{current_build} (animal build) uploaded to Hockey"
+  @result = "#{@name} #{version_number}.#{build_number} (animal build) uploaded to Hockey"
 end
 
 desc 'Submit a new nightly build from develop branch to FTP'
