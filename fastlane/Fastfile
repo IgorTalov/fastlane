@@ -325,10 +325,14 @@ end
 
 def update_root_plist(params)
   require 'plist'
+  puts params
   path = File.expand_path(params[:file]).sub! 'fastlane/', ''
+  puts path
   plist = Plist.parse_xml(path)
+  puts plist
   # Set the XML position of the Version item
   plist['PreferenceSpecifiers'].each {|item|
+    puts item
     if item['Key'] == 'DDSettingsApplicationVersion'
       item['DefaultValue'] = params[:value]
     end
