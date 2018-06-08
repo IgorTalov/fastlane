@@ -302,9 +302,8 @@ def pre_upload_action(options)
   increment_build_number(options)
 
   root_plists = options[:root_plists]
-  puts root_plists
   if root_plists
-    root_plists.each {|root_plist|
+    root_plists.each { |root_plist|
       update_root_plist(
         file: root_plist,
         key: 'DDSettingsApplicationBuildNumber',
@@ -325,17 +324,11 @@ end
 
 def update_root_plist(params)
   require 'plist'
-  puts params
   path = File.expand_path(params[:file]).sub! 'fastlane/', ''
-  puts path
   plist = Plist.parse_xml(path)
-  puts plist
   # Set the XML position of the Version item
-  plist['PreferenceSpecifiers'].each {|item|
-    puts item
-    if item['Key'] == 'DDSettingsApplicationVersion'
-      item['DefaultValue'] = params[:value]
-    end
+  plist['PreferenceSpecifiers'].each { |item|
+    item['DefaultValue'] = params[:value] if item['Key'] == params[:key]
   }
   new_plist = plist.to_plist
   File.write(path, new_plist)
@@ -361,7 +354,7 @@ def jira_changelog(tag_match_pattern)
     tag_match_pattern: tag_match_pattern
   )
   return 'empty' unless raw_changelog != nil
-  raw_changelog.scan(/\[\w+\]/).uniq.map {|message|
+  raw_changelog.scan(/\[\w+\]/).uniq.map { |message|
     return "http://ddsm-jira.digdes.com/browse/#{message[1...-1]}\n"
   }
 end
