@@ -302,12 +302,13 @@ def pre_upload_action(options)
   increment_build_number(options)
 
   root_plists = options[:root_plists]
-  if root_plists 
+  puts root_plists
+  if root_plists
     root_plists.each {|root_plist|
       update_root_plist(
-          file: root_plist,
-          key: 'DDSettingsApplicationBuildNumber',
-          value: "#{version_number} (#{build_number})"
+        file: root_plist,
+        key: 'DDSettingsApplicationBuildNumber',
+        value: "#{version_number} (#{build_number})"
       )
     }
   end
@@ -353,7 +354,7 @@ end
 
 def jira_changelog(tag_match_pattern)
   raw_changelog = changelog_from_git_commits(
-      tag_match_pattern: tag_match_pattern
+    tag_match_pattern: tag_match_pattern
   )
   return 'empty' unless raw_changelog != nil
   raw_changelog.scan(/\[\w+\]/).uniq.map {|message|
