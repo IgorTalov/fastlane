@@ -93,6 +93,7 @@ lane :nightly do |options|
   changelog = changelog_from_git_commits(
     tag_match_pattern: "#{customer_tag}_nightly/*"
   )
+  options[:tag_match_pattern] = "#{customer_tag}_nightly/*"
 
   puts "changelog: \n#{changelog}"
   changelog_empty = changelog.nil? || changelog.empty?
@@ -361,7 +362,7 @@ def jira_changelog(tag_match_pattern)
   commit_changelog = raw_changelog.scan(/\[(\S+-\S+)\]/).uniq.map { |message|
     "http://ddsm-jira.digdes.com/browse/#{message[0]}\n"
   }
-  [merge_changelog, commit_changelog].flatten.uniq.sort
+  [merge_changelog, commit_changelog].flatten.uniq.sort.join
 end
 
 def jira_only_changelog(tag_match_pattern, jira_project)
