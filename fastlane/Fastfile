@@ -352,6 +352,7 @@ def post_upload_action(options)
 end
 
 def jira_changelog(tag_match_pattern)
+  puts "tag_match_pattern: #{tag_match_pattern}"
   raw_changelog = changelog_from_git_commits(
     tag_match_pattern: tag_match_pattern
   )
