@@ -355,13 +355,13 @@ def jira_changelog(tag_match_pattern)
     tag_match_pattern: tag_match_pattern
   )
   return 'empty' unless raw_changelog != nil
-  merge_changelog = raw_changelog.scan(/Merge branch '(feature|bugfix)\/(\S+)'/).uniq.map { |message|
-    return "http://ddsm-jira.digdes.com/browse/#{message[1]}\n"
+  merge_changelog = raw_changelog.scan(/Merge branch '(feature|bugfix)\/(\S+)'/).map { |message|
+    "http://ddsm-jira.digdes.com/browse/#{message[1]}\n"
   }
-  commit_changelog = raw_changelog.scan(/\[\w+\]/).uniq.map { |message|
-      return "http://ddsm-jira.digdes.com/browse/#{message}\n"
+  commit_changelog = raw_changelog.scan(/\[(\S+-\S+)\]/).uniq.map { |message|
+    "http://ddsm-jira.digdes.com/browse/#{message[0]}\n"
   }
-  [merge_changelog, commit_changelog].flatten.uniq.sort
+  puts [merge_changelog, commit_changelog].flatten.uniq.sort
 end
 
 def jira_only_changelog(tag_match_pattern, jira_project)
