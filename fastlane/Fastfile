@@ -361,7 +361,7 @@ def jira_changelog(tag_match_pattern)
   commit_changelog = raw_changelog.scan(/\[(\S+-\S+)\]/).uniq.map { |message|
     "http://ddsm-jira.digdes.com/browse/#{message[0]}\n"
   }
-  puts [merge_changelog, commit_changelog].flatten.uniq.sort
+  [merge_changelog, commit_changelog].flatten.uniq.sort
 end
 
 def jira_only_changelog(tag_match_pattern, jira_project)
