@@ -200,7 +200,7 @@ lane :testing do |options|
   options[:shield_text] = shield_text
 
   # Setting up rules for changelog collecting
-  options[:tag_match_pattern] = "#{customer_tag}_testing/*"
+  options[:tag_match_pattern] = "#{customer_tag}_release/*"
 
   # Setting up app options
   setting_app_options(options)
