@@ -55,7 +55,8 @@ lane :staging do |options|
   options[:build_number] = obtain_build_number
 
   # Setting up git tag as 'staging/3.0.0/56'
-  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
+  #current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
+  current_version = ENV['VERSION']
   current_build = obtain_build_number
   staging_tag = "#{customer_tag}_staging/#{current_version}/#{current_build}"
   options[:tags] = [staging_tag]
@@ -354,9 +355,13 @@ def jira_changelog(tag_match_pattern)
     tag_match_pattern: tag_match_pattern
   )
   return 'empty' unless raw_changelog != nil
-  raw_changelog.scan(/\[\w+\]/).uniq.map { |message|
-    return "http://ddsm-jira.digdes.com/browse/#{message[1...-1]}\n"
+  merge_changelog = raw_changelog.scan(/Merge branch '(feature|bugfix|hotfix)\/(\S+)'/).uniq.map { |message|
+    return "http://ddsm-jira.digdes.com/browse/#{message[1]}\n"
   }
+  commit_changelog = raw_changelog.scan(/\[\w+\]/).uniq.map { |message|
+      return "http://ddsm-jira.digdes.com/browse/#{message}\n"
+  }
+  [merge_changelog, commit_changelog].flatten.uniq.sort
 end
 
 def jira_only_changelog(tag_match_pattern, jira_project)
