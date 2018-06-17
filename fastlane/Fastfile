@@ -43,7 +43,7 @@ lane :staging do |options|
 
   # Collecting a changelog from commit list
   options[:changelog] = changelog_from_git_commits(
-    tag_match_pattern: "#{customer_tag}_staging/*"
+      tag_match_pattern: "#{customer_tag}_staging/*"
   )
 
 
@@ -91,7 +91,7 @@ lane :nightly do |options|
 
   # Collecting a changelog from commit list
   changelog = changelog_from_git_commits(
-    tag_match_pattern: "#{customer_tag}_nightly/*"
+      tag_match_pattern: "#{customer_tag}_nightly/*"
   )
   options[:tag_match_pattern] = "#{customer_tag}_nightly/*"
 
@@ -143,7 +143,7 @@ lane :release do |options|
   customer_tag = ENV['CUSTOMER_TAG']
 
   options[:changelog] = changelog_from_git_commits(
-    tag_match_pattern: "#{customer_tag}_release/*"
+      tag_match_pattern: "#{customer_tag}_release/*"
   )
   # Setting up the default branch -- master
   options[:branch] = 'master'
@@ -182,7 +182,7 @@ lane :testing do |options|
   customer_tag = ENV['CUSTOMER_TAG']
 
   options[:changelog] = changelog_from_git_commits(
-    tag_match_pattern: "#{customer_tag}_release/*"
+      tag_match_pattern: "#{customer_tag}_release/*"
   )
 
   # Setting up git tag as 'testing/3.0.0/56'
@@ -221,17 +221,18 @@ private_lane :dd_slack do |options|
   context = lane_context[SharedValues::HOCKEY_BUILD_INFORMATION]
   config_url = context["config_url"]
   app_name = "[#{ENV["APP_NAME"]}|#{ENV["CUSTOMER_TAG"]}|#{build_type}"
+  channel_name = "[#{ENV["APP_NAME"]}_#{ENV["CUSTOMER_TAG"]}_#{build_type}".downcase
   url = "#{lane_context[SharedValues::HOCKEY_DOWNLOAD_LINK]}/app_versions/#{parse_version_from_url(config_url)}"
   slack(
-    message: "#{app_name}|#{version}] has been submitted to Hockey :rocket:",
-    success: true,
-    channel: app_name,
-    use_webhook_configured_username_and_icon: true,
-    payload: {
-              'Hockey App Download URL' => url,
-              :changelog => @jira_changelog
-    },
-    default_payloads: [:last_git_commit_hash]
+      message: "[#{app_name}|#{version}] has been submitted to Hockey :rocket:",
+      success: true,
+      channel: channel_name,
+      use_webhook_configured_username_and_icon: true,
+      payload: {
+          'Hockey App Download URL' => url,
+          :changelog => @jira_changelog
+      },
+      default_payloads: [:last_git_commit_hash]
   )
 end
 
@@ -258,28 +259,28 @@ private_lane :dd_hockey do |options|
 
   # Building the ipa file
   gym(
-    workspace: ENV['XCWORKSPACE_NAME'],
-    scheme: ENV['SCHEME'],
-    output_name: ENV['SCHEME'],
-    configuration: 'Release',
-    clean: true,
-    codesigning_identity: team_name,
-    xcargs: xcode_args(options),
-    disable_xcpretty: options[:disable_xcpretty],
-    export_method: 'enterprise'
+      workspace: ENV['XCWORKSPACE_NAME'],
+      scheme: ENV['SCHEME'],
+      output_name: ENV['SCHEME'],
+      configuration: 'Release',
+      clean: true,
+      codesigning_identity: team_name,
+      xcargs: xcode_args(options),
+      disable_xcpretty: options[:disable_xcpretty],
+      export_method: 'enterprise'
   )
 
   hockey(
-    api_token: ENV['HOCKEY_API_TOKEN'],
-    create_update: true,
-    public_identifier: ENV['HOCKEY_APP_ID'],
-    status: '2',
-    create_status: '2',
-    release_type: '3',
-    bundle_short_version: version_number,
-    bundle_version: build_number,
-    ipa: "#{ENV['SCHEME']}.ipa",
-    notes: @jira_changelog,
+      api_token: ENV['HOCKEY_API_TOKEN'],
+      create_update: true,
+      public_identifier: ENV['HOCKEY_APP_ID'],
+      status: '2',
+      create_status: '2',
+      release_type: '3',
+      bundle_short_version: version_number,
+      bundle_version: build_number,
+      ipa: "#{ENV['SCHEME']}.ipa",
+      notes: @jira_changelog,
   )
 end
 
@@ -293,7 +294,7 @@ def pre_upload_action(options)
 
   # Update pods
   cocoapods(
-    clean: true,
+      clean: true,
   )
 
   # New version number has to be specified explicitly
@@ -307,11 +308,11 @@ def pre_upload_action(options)
 
   root_plists = options[:root_plists]
   if root_plists
-    root_plists.each { |root_plist|
+    root_plists.each {|root_plist|
       update_root_plist(
-        file: root_plist,
-        key: 'DDSettingsApplicationBuildNumber',
-        value: "#{version_number} (#{build_number})"
+          file: root_plist,
+          key: 'DDSettingsApplicationBuildNumber',
+          value: "#{version_number} (#{build_number})"
       )
     }
   end
@@ -331,7 +332,7 @@ def update_root_plist(params)
   path = File.expand_path(params[:file]).sub! 'fastlane/', ''
   plist = Plist.parse_xml(path)
   # Set the XML position of the Version item
-  plist['PreferenceSpecifiers'].each { |item|
+  plist['PreferenceSpecifiers'].each {|item|
     item['DefaultValue'] = params[:value] if item['Key'] == params[:key]
   }
   new_plist = plist.to_plist
@@ -356,13 +357,13 @@ end
 def jira_changelog(tag_match_pattern)
   puts "tag_match_pattern: #{tag_match_pattern}"
   raw_changelog = changelog_from_git_commits(
-    tag_match_pattern: tag_match_pattern
+      tag_match_pattern: tag_match_pattern
   )
   return 'empty' unless raw_changelog != nil
-  merge_changelog = raw_changelog.scan(/Merge branch '(feature|bugfix)\/(\S+)'/).map { |message|
+  merge_changelog = raw_changelog.scan(/Merge branch '(feature|bugfix)\/(\S+)'/).map {|message|
     "http://ddsm-jira.digdes.com/browse/#{message[1]}"
   }
-  commit_changelog = raw_changelog.scan(/\[(\S+-\S+)\]/).uniq.map { |message|
+  commit_changelog = raw_changelog.scan(/\[(\S+-\S+)\]/).uniq.map {|message|
     "http://ddsm-jira.digdes.com/browse/#{message[0]}"
   }
   [merge_changelog, commit_changelog].flatten.uniq.sort.join("\n")
@@ -370,15 +371,15 @@ end
 
 def jira_only_changelog(tag_match_pattern, jira_project)
   raw_changelog = changelog_from_git_commits(
-    tag_match_pattern: tag_match_pattern
+      tag_match_pattern: tag_match_pattern
   )
   return 'empty' unless raw_changelog != nil
 
-    regexp = Regexp.new("(#{jira_project}-[0-9]*)(?:.*\#comment (.*))?").freeze
+  regexp = Regexp.new("(#{jira_project}-[0-9]*)(?:.*\#comment (.*))?").freeze
 
-  messages = raw_changelog.split("\n").select { |message|
+  messages = raw_changelog.split("\n").select {|message|
     message.match(regexp)
-  }.map { |message|
+  }.map {|message|
     jira_issue_id = message.match(regexp)[1]
     comment = message.match(regexp)[2]
     formatted_comment = comment && !comment.empty? ? " – #{comment}" : ''
@@ -399,16 +400,16 @@ def update_build_and_version_with_extensions(options, build_number)
 
   app_plists = [get_info_plist_path] if app_plists == nil
 
-  app_plists.each { |app_plist|
+  app_plists.each {|app_plist|
     set_info_plist_value(
-      path: app_plist,
-      key: 'CFBundleVersion',
-      value: "#{build_number}"
+        path: app_plist,
+        key: 'CFBundleVersion',
+        value: "#{build_number}"
     )
     set_info_plist_value(
-      path: app_plist,
-      key: 'CFBundleShortVersionString',
-      value: "#{version_number}"
+        path: app_plist,
+        key: 'CFBundleShortVersionString',
+        value: "#{version_number}"
     )
   }
 end
