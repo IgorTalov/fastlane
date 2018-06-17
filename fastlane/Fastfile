@@ -247,12 +247,13 @@ private_lane :dd_hockey do |options|
     badge(shield: shield_data, dark: true)
   end
 
+  configuration = ENV['CONFIGURATION'] || 'Release'
   # Building the ipa file
   gym(
       workspace: ENV['XCWORKSPACE_NAME'],
       scheme: ENV['SCHEME'],
       output_name: ENV['SCHEME'],
-      configuration: 'Release',
+      configuration: configuration,
       clean: true,
       codesigning_identity: team_name,
       xcargs: xcode_args(options),
