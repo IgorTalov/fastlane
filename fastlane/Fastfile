@@ -42,11 +42,7 @@ lane :staging do |options|
   customer_tag = ENV['CUSTOMER_TAG']
 
   # Collecting a changelog from commit list
-  options[:changelog] = changelog_from_git_commits(
-      tag_match_pattern: "#{customer_tag}_staging/*"
-  )
-
-
+  #
   branch = git_checkout_release(version: version)
   options[:branch] = branch
 
@@ -67,6 +63,7 @@ lane :staging do |options|
 
   # Setting up rules for changelog collecting
   options[:tag_match_pattern] = "#{customer_tag}_staging/*"
+  options[:release_tag_match_pattern] = "#{customer_tag}_release/*"
 
   # Setting up app options
   setting_app_options(options)
@@ -89,11 +86,13 @@ lane :nightly do |options|
   sh('git tag | xargs git tag -d')
   sh("git fetch origin 'refs/tags/#{customer_tag}_nightly/latest:refs/tags/#{customer_tag}_nightly/latest'") rescue ''
 
+  options[:tag_match_pattern] = "#{customer_tag}_nightly/*"
+  options[:release_tag_match_pattern] = "#{customer_tag}_release/*"
+
   # Collecting a changelog from commit list
   changelog = changelog_from_git_commits(
-      tag_match_pattern: "#{customer_tag}_nightly/*"
+      tag_match_pattern: options[:tag_match_pattern]
   )
-  options[:tag_match_pattern] = "#{customer_tag}_nightly/*"
 
   changelog_empty = changelog.nil? || changelog.empty?
   @result = 'no changes' if changelog_empty
@@ -141,9 +140,6 @@ lane :release do |options|
   git_reset unless options[:skip_reset]
   customer_tag = ENV['CUSTOMER_TAG']
 
-  options[:changelog] = changelog_from_git_commits(
-      tag_match_pattern: "#{customer_tag}_release/*"
-  )
   # Setting up the default branch -- master
   options[:branch] = 'master'
 
@@ -180,10 +176,6 @@ lane :testing do |options|
   options[:branch] = 'develop'
   customer_tag = ENV['CUSTOMER_TAG']
 
-  options[:changelog] = changelog_from_git_commits(
-      tag_match_pattern: "#{customer_tag}_release/*"
-  )
-
   # Setting up git tag as 'testing/3.0.0/56'
   current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
   current_build = obtain_build_number
@@ -200,6 +192,7 @@ lane :testing do |options|
 
   # Setting up rules for changelog collecting
   options[:tag_match_pattern] = "#{customer_tag}_release/*"
+  options[:release_tag_match_pattern] = "#{customer_tag}_release/*"
 
   # Setting up app options
   setting_app_options(options)
@@ -316,8 +309,13 @@ def pre_upload_action(options)
   end
 
   # Collecting a full changelog consisting of JIRA tasks
-  changelog = jira_changelog(options[:tag_match_pattern])
-  @jira_changelog = "List of changes:\n#{changelog}"
+  default_changelog = jira_changelog(options[:tag_match_pattern])
+  @jira_changelog = "Current build changes:\n#{default_changelog}"
+
+  if options[:release_tag_match_pattern]
+    changelog_from_release = jira_changelog(options[:release_tag_match_pattern])
+    @jira_changelog += "\n Release changes: #{changelog_from_release}"
+  end
 
   current_branch = git_branch()
   @jira_changelog ||= ''
