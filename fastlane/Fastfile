@@ -220,10 +220,12 @@ private_lane :dd_slack do |options|
   version = "#{options[:version_number]}.#{options[:build_number]}"
   context = lane_context[SharedValues::HOCKEY_BUILD_INFORMATION]
   config_url = context["config_url"]
+  app_name = "[#{ENV["APP_NAME"]}|#{ENV["CUSTOMER_TAG"]}|#{build_type}"
   url = "#{lane_context[SharedValues::HOCKEY_DOWNLOAD_LINK]}/app_versions/#{parse_version_from_url(config_url)}"
   slack(
-    message: "[#{ENV["APP_NAME"]}|#{ENV["CUSTOMER_TAG"]}|#{build_type}|#{version}] has been submitted to Hockey :rocket:",
+    message: "#{app_name}|#{version}] has been submitted to Hockey :rocket:",
     success: true,
+    channel: app_name,
     use_webhook_configured_username_and_icon: true,
     payload: {
               'Hockey App Download URL' => url,
