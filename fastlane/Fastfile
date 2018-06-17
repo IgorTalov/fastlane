@@ -95,7 +95,6 @@ lane :nightly do |options|
   )
   options[:tag_match_pattern] = "#{customer_tag}_nightly/*"
 
-  puts "changelog: \n#{changelog}"
   changelog_empty = changelog.nil? || changelog.empty?
   @result = 'no changes' if changelog_empty
 
