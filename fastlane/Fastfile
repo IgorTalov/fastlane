@@ -248,6 +248,7 @@ private_lane :dd_hockey do |options|
   end
 
   configuration = ENV['CONFIGURATION'] || 'Release'
+  clear_derived_data
   # Building the ipa file
   gym(
       workspace: ENV['XCWORKSPACE_NAME'],
