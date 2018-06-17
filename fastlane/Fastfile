@@ -225,7 +225,6 @@ private_lane :dd_slack do |options|
   slack(
       message: "[#{app_name}|#{version}] has been submitted to Hockey :rocket:",
       success: true,
-      channel: channel_name,
       use_webhook_configured_username_and_icon: true,
       payload: {
           'Hockey App Download URL' => url,
