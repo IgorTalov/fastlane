@@ -286,6 +286,7 @@ def pre_upload_action(options)
   # Update pods
   cocoapods(
       clean: true,
+      try_repo_update_on_error: true
   )
 
   # New version number has to be specified explicitly
