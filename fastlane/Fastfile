@@ -211,7 +211,7 @@ private_lane :dd_slack do |options|
   build_type = options[:type]
   version = "#{options[:version_number]}.#{options[:build_number]}"
   context = lane_context[SharedValues::HOCKEY_BUILD_INFORMATION]
-  config_url = context["config_url"]
+  config_url = context['config_url']
   app_name = "#{ENV["APP_NAME"]}|#{ENV["CUSTOMER_TAG"]}|#{build_type}"
   url = "#{lane_context[SharedValues::HOCKEY_DOWNLOAD_LINK]}/app_versions/#{parse_version_from_url(config_url)}"
   slack(
@@ -312,19 +312,18 @@ def pre_upload_action(options)
 
   # Collecting a full changelog consisting of JIRA tasks
   default_changelog = jira_changelog(options[:tag_match_pattern])
-  if default_changelog.empty?
-    @jira_changelog = "Current build changes:\n#{default_changelog}"
-  else
-    @jira_changelog = "Current build changes: empty"
-  end
+  @jira_changelog = if default_changelog.empty? 'Current build changes: empty'
+                    else
+                      "Current build changes:\n#{default_changelog}"
+                    end
 
   if options[:release_tag_match_pattern]
     changelog_from_release = jira_changelog(options[:release_tag_match_pattern])
-    if changelog_from_release.empty?
-      @jira_changelog += "\n Release changes:\n#{changelog_from_release}"
-    else
-      @jira_changelog += "\n Release changes: empty"
-    end
+    @jira_changelog += if changelog_from_release.empty?
+                         "\n Release changes:\n#{changelog_from_release}"
+                       else
+                         "\n Release changes: empty"
+                       end
   end
 
   current_branch = git_branch()
