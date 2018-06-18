@@ -312,18 +312,19 @@ def pre_upload_action(options)
 
   # Collecting a full changelog consisting of JIRA tasks
   default_changelog = jira_changelog(options[:tag_match_pattern])
-  @jira_changelog = if default_changelog.empty? 'Current build changes: empty'
-                    else
-                      "Current build changes:\n#{default_changelog}"
-                    end
+  if default_changelog.empty?
+    @jira_changelog = 'Current build changes: empty';
+  else
+    @jira_changelog =  "Current build changes:\n#{default_changelog}"
+  end
 
   if options[:release_tag_match_pattern]
     changelog_from_release = jira_changelog(options[:release_tag_match_pattern])
-    @jira_changelog += if changelog_from_release.empty?
-                         "\n Release changes:\n#{changelog_from_release}"
-                       else
-                         "\n Release changes: empty"
-                       end
+    if changelog_from_release.empty?
+      @jira_changelog += "\n Release changes:\n#{changelog_from_release}"
+    else
+      @jira_changelog += "\n Release changes: empty"
+    end
   end
 
   current_branch = git_branch()
