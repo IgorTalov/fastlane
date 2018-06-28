@@ -421,7 +421,9 @@ def generate_build_report
         <br>
         <br>
         <h1>Changelog</h1>
-          <%= simple_format(@jira_changelog) %>
+        <p>
+          <%= @jira_changelog.gsub('\n', '<br>\ns') %>
+        </p>
         </body>
         </html>
       "
