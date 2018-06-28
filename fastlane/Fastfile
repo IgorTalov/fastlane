@@ -3,6 +3,7 @@ require 'date'
 require 'credentials_manager'
 require 'yaml'
 require 'fileutils'
+require 'erb'
 
 ######################### PRECONDITIONS #########################
 default_platform :ios
@@ -209,11 +210,10 @@ end
 
 private_lane :dd_slack do |options|
   build_type = options[:type]
+
   version = "#{options[:version_number]}.#{options[:build_number]}"
-  context = lane_context[SharedValues::HOCKEY_BUILD_INFORMATION]
-  config_url = context['config_url']
+  url = obtain_hockey_link
   app_name = "#{ENV["APP_NAME"]}|#{ENV["CUSTOMER_TAG"]}|#{build_type}"
-  url = "#{lane_context[SharedValues::HOCKEY_DOWNLOAD_LINK]}/app_versions/#{parse_version_from_url(config_url)}"
   slack(
       message: "[#{app_name}|#{version}] has been submitted to Hockey :rocket:",
       success: true,
@@ -358,6 +358,12 @@ def post_upload_action(options)
     branch = options[:branch]
     sh("git push -uf origin #{branch}")
   end
+  preconfigure_report(options)
+  generate_build_report
+end
+
+def preconfigure_report(options)
+  @hockey_url = obtain_hockey_link
 end
 
 def jira_changelog(tag_match_pattern)
@@ -400,6 +406,20 @@ def increment_build_number(options)
   Actions.lane_context[SharedValues::BUILD_NUMBER] = build_number
 end
 
+def generate_build_report
+  erb_file = 'fastlane_result.html.erb'
+  html_file = File.basename(erb_file, '.erb') #=>"page.html"
+
+  erb_str = File.read(erb_file)
+
+  renderer = ERB.new(erb_str)
+  result = renderer.result
+
+  File.open(html_file, 'w') do |f|
+    f.write(result)
+  end
+end
+
 def update_build_and_version_with_extensions(options, build_number)
   app_plists = options[:app_plists]
   version_number = options[:version_number]
@@ -439,6 +459,11 @@ def main_app_identifier(options)
   main_app_identifier
 end
 
+def obtain_hockey_link
+  context = lane_context[SharedValues::HOCKEY_BUILD_INFORMATION]
+  config_url = context['config_url']
+  "#{lane_context[SharedValues::HOCKEY_DOWNLOAD_LINK]}/app_versions/#{parse_version_from_url(config_url)}"
+end
 
 def obtain_build_number
   ENV['BUILD_NUMBER']
