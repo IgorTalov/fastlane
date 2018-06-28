@@ -410,24 +410,24 @@ def generate_build_report
   html_file = 'fastlane_result.html'
 
   erb_str =
-      """
+      "
         <html>
         <head>
             <title>Build report</title>
         </head>
         <body>
         <h1>Hockey App Download URL</h1>
-        <a href=\"<%=@hockey_url%>\"><%=@hockey_url%></a>
+        <a href=\"< %=@hockey_url %>\"><%=@hockey_url%></a>
         <br>
         <br>
         <h1>Changelog</h1>
-          <%=@jira_changelog%>
+          <%= @jira_changelog %>
         </body>
         </html>
-      """
+      "
 
   renderer = ERB.new(erb_str)
-  result = renderer.result
+  result = renderer.result(binding)
 
   File.open(html_file, 'w') do |f|
     f.write(result)
