@@ -407,10 +407,24 @@ def increment_build_number(options)
 end
 
 def generate_build_report
-  erb_file = 'fastlane_result.html.erb'
-  html_file = File.basename(erb_file, '.erb') #=>"page.html"
+  html_file = 'fastlane_result.html'
 
-  erb_str = File.read(erb_file)
+  erb_str =
+      """
+        <html>
+        <head>
+            <title>Build report</title>
+        </head>
+        <body>
+        <h1>Hockey App Download URL</h1>
+        <a href=\"<%=@hockey_url%>\"><%=@hockey_url%></a>
+        <br>
+        <br>
+        <h1>Changelog</h1>
+          <%=@jira_changelog%>
+        </body>
+        </html>
+      """
 
   renderer = ERB.new(erb_str)
   result = renderer.result
