@@ -417,7 +417,7 @@ def generate_build_report
         </head>
         <body>
         <h1>Hockey App Download URL</h1>
-        <a href=\"< %=@hockey_url %>\"><%=@hockey_url%></a>
+        <a href=\"<%= @hockey_url %>\"><%=@hockey_url%></a>
         <br>
         <br>
         <h1>Changelog</h1>
