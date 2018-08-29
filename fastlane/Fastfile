@@ -208,6 +208,33 @@ lane :testing do |options|
   @result = "#{@name} #{current_version}.#{current_build} (testing) uploaded to Hockey"
 end
 
+lane :ci_build do |options|
+  options[:type] = 'CI'
+  customer_tag = ENV['CUSTOMER_TAG']
+
+  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'], target: ENV['SCHEME'])
+  current_build = obtain_build_number
+  testing_tag = "#{customer_tag}_ci/#{current_version}/#{current_build}"
+  options[:tags] = [testing_tag]
+
+  options[:version_number] = current_version
+  options[:build_number] = obtain_build_number
+
+  options[:tag_match_pattern] = "#{customer_tag}_ci/*"
+  options[:release_tag_match_pattern] = "#{customer_tag}_release/*"
+  options[:skip_hockey] = true
+  # Setting up app options
+  setting_app_options(options)
+
+  # Switching to Hockey lane
+  pre_upload_action(options)
+  dd_hockey(options)
+  post_upload_action(options)
+
+  # Setting output message
+  @result = "#{@name} #{current_version}.#{current_build} (ci) created"
+end
+
 private_lane :dd_slack do |options|
   build_type = options[:type]
 
@@ -261,19 +288,21 @@ private_lane :dd_hockey do |options|
       disable_xcpretty: options[:disable_xcpretty],
       export_method: 'enterprise'
   )
-
-  hockey(
-      api_token: ENV['HOCKEY_API_TOKEN'],
-      create_update: true,
-      public_identifier: ENV['HOCKEY_APP_ID'],
-      status: '2',
-      create_status: '2',
-      release_type: '3',
-      bundle_short_version: version_number,
-      bundle_version: build_number,
-      ipa: "#{ENV['SCHEME']}.ipa",
-      notes: @jira_changelog,
-  )
+  skip_hockey = options[:skip_hockey]
+  unless skip_hockey
+    hockey(
+        api_token: ENV['HOCKEY_API_TOKEN'],
+        create_update: true,
+        public_identifier: ENV['HOCKEY_APP_ID'],
+        status: '2',
+        create_status: '2',
+        release_type: '3',
+        bundle_short_version: version_number,
+        bundle_version: build_number,
+        ipa: "#{ENV['SCHEME']}.ipa",
+        notes: @jira_changelog,
+        )
+  end
 end
 
 def pre_upload_action(options)
