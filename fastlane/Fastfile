@@ -81,6 +81,7 @@ end
 
 desc 'Submit a new nightly build from develop branch to Hockey'
 lane :nightly do |options|
+  clearArchives
   options[:type] = 'Nightly'
   customer_tag = ENV['CUSTOMER_TAG']
   # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
@@ -521,4 +522,23 @@ end
 def xcode_args(options)
   team_id = ENV['TEAM_ID']
   "DEVELOPMENT_TEAM=#{team_id}"
+end
+
+def clearArchives
+  if diskFreeSpace != nil and diskFreeSpace <= 20
+    FileUtils.rm_rf("#{xcodeArchivePath}/.", secure: true)
+  end
+end
+
+def diskFreeSpace
+  if Gem::Specification::find_all_by_name('sys-filesystem').any?
+    stat = Sys::Filesystem.stat("/")
+    gb_available = stat.block_size * stat.blocks_available / 1024 ** 3
+    gb_available
+  end 
+end
+
+def xcodeArchivePath
+  path = File.expand_path("~/Library/Developer/Xcode/Archives")
+  path
 end
