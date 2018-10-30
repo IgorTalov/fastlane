@@ -4,6 +4,7 @@ require 'credentials_manager'
 require 'yaml'
 require 'fileutils'
 require 'erb'
+require 'sys/filesystem'
 
 ######################### PRECONDITIONS #########################
 default_platform :ios
