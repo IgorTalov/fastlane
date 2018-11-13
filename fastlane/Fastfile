@@ -527,9 +527,8 @@ def obtain_team_name
 end
 
 def xcode_args(options)
-  "-UseNewBuildSystem=YES"
   team_id = ENV['TEAM_ID']
-  "DEVELOPMENT_TEAM=#{team_id}"
+  "DEVELOPMENT_TEAM=#{team_id} -UseNewBuildSystem=YES"
 end
 
 def clearArchives
