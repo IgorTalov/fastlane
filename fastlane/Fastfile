@@ -288,7 +288,13 @@ private_lane :dd_hockey do |options|
       codesigning_identity: team_name,
       xcargs: xcode_args(options),
       disable_xcpretty: options[:disable_xcpretty],
-      export_method: 'enterprise'
+      export_method: 'enterprise',
+      include_bitcode: false,
+      export_options: {
+          uploadBitcode: false,
+          uploadSymbols: true,
+          compileBitcode: false
+      }
   )
   skip_hockey = options[:skip_hockey]
   unless skip_hockey
@@ -521,6 +527,7 @@ def obtain_team_name
 end
 
 def xcode_args(options)
+  "-UseNewBuildSystem=YES"
   team_id = ENV['TEAM_ID']
   "DEVELOPMENT_TEAM=#{team_id}"
 end
