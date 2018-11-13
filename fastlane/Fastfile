@@ -273,7 +273,7 @@ private_lane :dd_hockey do |options|
   if shield_text
     shield_data = "#{shield_text}-#{version_number}.#{build_number}-blue"
     print("shield_data: #{shield_data}")
-    badge(shield: shield_data, dark: true)
+    add_badge(shield: shield_data, dark: true)
   end
 
   configuration = ENV['CONFIGURATION'] || 'Release'
